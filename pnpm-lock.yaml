@@ -5,6 +5,7 @@ dependencies:
   '@wojtekmaj/enzyme-adapter-react-17': 0.6.3_ed988ebff08079c40ff9e87e2acc78b3
   chalk: 4.1.0
   enzyme: 3.11.0
+  hamburger-react: 2.5.0_react@17.0.1
   history: 5.0.1
   js-cookie: 3.0.1
   msw: 0.35.0
@@ -7672,6 +7673,14 @@ packages:
       node: '>=6'
     resolution:
       integrity: sha512-FNHi6mmoHvs1mxZAds4PpdCS6QG8B4C1krxJsMutgxl5t3+GlRTzzI3NEkifXx2pVsOvJdOGSmIgDhQ55FwdPA==
+  /hamburger-react/2.5.0_react@17.0.1:
+    dependencies:
+      react: 17.0.1
+    dev: false
+    peerDependencies:
+      react: ^16.8 || ^17 || ^18
+    resolution:
+      integrity: sha512-5GSXe+ucxTPJ0SkhIsPQ/PRDweZPIKya1lfahAuExx31SdheeUA4uOPfQIAirbKona8hvo79VDr5LJQzPXsdpw==
   /handle-thing/2.0.1:
     dev: true
     resolution:
@@ -14922,6 +14931,7 @@ specifiers:
   eslint-config-airbnb: 18.2.1
   eslint-config-prettier: 8.1.0
   eslint-plugin-prettier: 3.3.1
+  hamburger-react: 2.5.0
   history: 5.0.1
   husky: 4.3.8
   js-cookie: 3.0.1
