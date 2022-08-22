@@ -1,78 +1,111 @@
 import {Component} from 'react'
-import {Link} from 'react-router-dom'
-import {ImMenu2} from 'react-icons/im'
+
+import {Link, withRouter} from 'react-router-dom'
 
 import './index.css'
 
 class Header extends Component {
-  state = {isToggleActive: false}
-
-  whenToggleButtonClick = () => {
-    this.setState(prevState => ({isToggleActive: !prevState.isToggleActive}))
+  state = {
+    showMenu: false,
   }
 
-  showDropDownMenu = () => (
-    <>
-      <ul className="navBar">
-        <Link to="/" className="link">
-          <li className="item">Home</li>
-        </Link>
-        <Link to="/about" className="link">
-          <li className="item">About</li>
-        </Link>
-        <Link to="/vaccination" className="link">
-          <li className="item">Vaccination</li>
-        </Link>
-      </ul>
-    </>
-  )
+  toggleMenu = () =>
+    this.setState(prevState => ({showMenu: !prevState.showMenu}))
+
+  closeMenu = () => this.setState({showMenu: false})
 
   render() {
-    const {isToggleActive} = this.state
-    console.log(isToggleActive)
+    const {showMenu} = this.state
+    const {match} = this.props
+    const {path} = match
+    const homeClassName = path === '/' ? 'link-name highlight' : 'link-name'
+    const aboutClassName =
+      path === '/about' ? 'link-name highlight' : 'link-name'
+    const vaccinationClassName =
+      path === '/vaccination' ? 'link-name highlight' : 'link-name'
     return (
       <>
-        <div className="header-container">
-          <Link to="/" className="link">
-            <h1 className="logo">
-              COVID19<span className="india">INDIA</span>
-            </h1>
+        <nav className="header-list">
+          <Link to="/" className="link-logo">
+            <span className="app-name">COVID19</span>
+            <span className="app-name blue-text">INDIA</span>
           </Link>
-          <ul className="navBar">
-            <Link to="/" className="link">
-              <li className="item">Home</li>
+          <ul className="nav-list">
+            <Link className="link-logo" to="/">
+              <li key="1">
+                <button type="button" className={homeClassName}>
+                  Home
+                </button>
+              </li>
             </Link>
-            <Link to="/about" className="link">
-              <li className="item">About</li>
+            <Link className="link-logo" to="/vaccination">
+              <li key="2">
+                <button type="button" className={vaccinationClassName}>
+                  Vaccination
+                </button>
+              </li>
             </Link>
-
-            <Link to="/vaccination" className="link">
-              <li className="item">Vaccination</li>
+            <Link className="link-logo" to="/about">
+              <li key="3">
+                <button type="button" className={aboutClassName}>
+                  About
+                </button>
+              </li>
             </Link>
           </ul>
-        </div>
-        <div className="mobile-menu">
-          <div className="mobile-header-container">
-            <Link to="/" className="link">
-              <h1 className="logo">
-                COVID19<span className="india">INDIA</span>
-              </h1>
+          <button
+            type="button"
+            className="menu-button"
+            onClick={this.toggleMenu}
+          >
+            <img
+              src="https://res.cloudinary.com/dyhsyterg/image/upload/v1643368210/add-to-queue_1_lrcjeu.png"
+              alt="menu item"
+              className="menu-image"
+            />
+          </button>
+        </nav>
+        {showMenu ? (
+          <ul className="menu-list">
+            <Link className="link-item" to="/">
+              <li key="1">
+                <button type="button" className={homeClassName}>
+                  Home
+                </button>
+              </li>
             </Link>
-            <button
-              type="button"
-              className="toggle-button"
-              onClick={this.whenToggleButtonClick}
-            >
-              <ImMenu2 className="menuIcon" alt="menu" />
-            </button>
-          </div>
-          <div className="menu">
-            {isToggleActive ? this.showDropDownMenu() : null}
-          </div>
-        </div>
+            <Link className="link-item" to="/vaccination">
+              <li key="2">
+                <button type="button" className={vaccinationClassName}>
+                  Vaccination
+                </button>
+              </li>
+            </Link>
+            <Link className="link-item" to="/about">
+              <li key="3">
+                <button type="button" className={aboutClassName}>
+                  About
+                </button>
+              </li>
+            </Link>
+            <li className="close-item" key="3">
+              <button
+                type="button"
+                className="close-button"
+                onClick={this.closeMenu}
+              >
+                <img
+                  src="https://res.cloudinary.com/dyhsyterg/image/upload/v1643369220/Shape_hewlfb.png"
+                  alt="close icon"
+                  className="close-icon"
+                />
+              </button>
+            </li>
+          </ul>
+        ) : null}
       </>
     )
   }
 }
 
-export default Header
+export default withRouter(Header)
