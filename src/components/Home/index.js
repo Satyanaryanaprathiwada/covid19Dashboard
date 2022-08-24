@@ -1,13 +1,18 @@
 import {Component} from 'react'
+
+import {Link} from 'react-router-dom'
+
 import {BsSearch} from 'react-icons/bs'
+
 import {FcGenericSortingAsc, FcGenericSortingDesc} from 'react-icons/fc'
+
+import {BiChevronRightSquare} from 'react-icons/bi'
+
 import Loader from 'react-loader-spinner'
 
 import Header from '../Header'
-import Footer from '../Footer'
-import TotalStats from '../TotalStats'
 
-import SearchResult from '../SearchResult'
+import Footer from '../Footer'
 
 import './index.css'
 
@@ -158,284 +163,254 @@ const statesList = [
   },
 ]
 
+const appConstants = {
+  initial: 'INITIAL',
+  progress: 'IN_PROGRESS',
+  success: 'SUCCESS',
+}
+
 class Home extends Component {
   state = {
-    isLoading: true,
-    totalActiveCases: 0,
-    totalConfirmedCases: 0,
-    totalRecoveredCases: 0,
-    totalDeceasedCases: 0,
-    search: '',
-    filteredSearchList: [],
-    statesInfo: [],
+    countryWideList: [],
+    appStatus: appConstants.initial,
+    searchInput: '',
+    searchList: [],
   }
 
   componentDidMount() {
-    this.getAllData()
+    this.startFetching()
   }
 
-  getAllData = async () => {
-    const apiUrl = 'https://apis.ccbp.in/covid19-state-wise-data'
-    const options = {
-      method: 'GET',
-    }
-    const response = await fetch(apiUrl, options)
-    if (response.ok === true) {
-      // console.log(response)
-      const data = await response.json()
-      // console.log(data)
-      let nationalWideConfirmedCases = 0
-      let nationalWideRecoveredCases = 0
-      let nationalWideDeceasedCases = 0
-      let nationalWideActiveCases = 0
-
-      statesList.forEach(state => {
-        if (data[state.state_code]) {
-          const {total} = data[state.state_code]
-          nationalWideConfirmedCases += total.confirmed ? total.confirmed : 0
-          nationalWideDeceasedCases += total.deceased ? total.deceased : 0
-          nationalWideRecoveredCases += total.recovered ? total.recovered : 0
-        }
-      })
-      nationalWideActiveCases +=
-        nationalWideConfirmedCases -
-        (nationalWideRecoveredCases + nationalWideDeceasedCases)
-
-      const states = statesList.map(eachState => ({
-        stateName: eachState.state_name,
-        stateCode: eachState.state_code,
-        confirmed: Object.keys(data)
-          .filter(state => state === eachState.state_code)
-          .map(e => data[e].total.confirmed),
-        recovered: Object.keys(data)
-          .filter(state => state === eachState.state_code)
-          .map(e => data[e].total.recovered),
-        deceased: Object.keys(data)
-          .filter(state => state === eachState.state_code)
-          .map(e => data[e].total.deceased),
-        other: Object.keys(data)
-          .filter(state => state === eachState.state_code)
-          .map(e => data[e].total.other),
-        population: Object.keys(data)
-          .filter(state => state === eachState.state_code)
-          .map(e => data[e].meta.population),
-      }))
-
-      this.setState({
-        totalActiveCases: nationalWideActiveCases,
-        totalRecoveredCases: nationalWideRecoveredCases,
-        totalDeceasedCases: nationalWideDeceasedCases,
-        totalConfirmedCases: nationalWideConfirmedCases,
-        isLoading: false,
-        statesInfo: states,
-      })
-    }
-  }
-
-  renderAllNationalData = () => {
-    const {
-      totalConfirmedCases,
-      totalActiveCases,
-      totalRecoveredCases,
-      totalDeceasedCases,
-    } = this.state
-
-    return (
-      <>
-        <div testid="countryWideConfirmedCases" className="stats-block-column">
-          <p className="stats-title red">Confirmed</p>
-          <img
-            src="https://res.cloudinary.com/amst/image/upload/v1639929248/conf_cof3e9.jpg"
-            className="stats-icon"
-            alt="country wide confirmed cases pic"
-          />
-          <p className="stats-number red">{totalConfirmedCases}</p>
-        </div>
-
-        <div testid="countryWideActiveCases" className="stats-block-column">
-          <p className="stats-title blue">Active</p>
-          <img
-            src="https://res.cloudinary.com/amst/image/upload/v1639929248/act_kq7nfx.jpg"
-            className="stats-icon"
-            alt="country wide active cases pic"
-          />
-          <p className="stats-number blue">{totalActiveCases}</p>
-        </div>
-
-        <div testid="countryWideRecoveredCases" className="stats-block-column">
-          <p className="stats-title green">Recovered</p>
-          <img
-            src="https://res.cloudinary.com/amst/image/upload/v1639929248/uyf_ndpqov.jpg"
-            className="stats-icon"
-            alt="country wide recovered cases pic"
-          />
-          <p className="stats-number green">{totalRecoveredCases}</p>
-        </div>
-
-        <div testid="countryWideDeceasedCases" className="stats-block-column ">
-          <p className="stats-title gray">Deceased</p>
-          <img
-            src="https://res.cloudinary.com/amst/image/upload/v1639929248/dese_tgak4e.jpg"
-            className="stats-icon"
-            alt="country wide deceased cases pic"
-          />
-          <p className="stats-number gray">{totalDeceasedCases}</p>
-        </div>
-      </>
+  startFetching = () => {
+    this.setState(
+      {appStatus: appConstants.progress},
+      this.getCountryWideDetails,
     )
   }
 
-  renderLoadingView = () => (
-    <div
-      className="products-details-loader-container loader-container"
-      testid="homeRouteLoader"
-    >
-      <Loader type="ThreeDots" color="#0b69ff" height="50" width="50" />
-    </div>
-  )
-
-  whenAscendingSortButtonClicked = () => {
-    const {statesInfo} = this.state
-    const sortedList = statesInfo.sort((a, b) => {
-      const x = a.stateName.toUpperCase()
-      const y = b.stateName.toUpperCase()
-      return x > y ? 1 : -1
-    })
-    this.setState({statesInfo: sortedList})
+  getCountryWideDetails = async () => {
+    const url = 'https://apis.ccbp.in/covid19-state-wise-data'
+    const response = await fetch(url)
+    const data = await response.json()
+    if (response.ok) {
+      const newData = statesList.map(eachValue => {
+        if (data[eachValue.state_code]) {
+          return {
+            confirmed: data[`${eachValue.state_code}`].total.confirmed,
+            recovered: data[`${eachValue.state_code}`].total.recovered,
+            deceased: data[`${eachValue.state_code}`].total.deceased,
+            population: data[`${eachValue.state_code}`].meta.population,
+            active:
+              data[`${eachValue.state_code}`].total.confirmed -
+              (data[`${eachValue.state_code}`].total.recovered +
+                data[`${eachValue.state_code}`].total.deceased),
+            id: eachValue.state_code,
+            name: eachValue.state_name,
+          }
+        }
+        return {
+          confirmed: 0,
+          recovered: 0,
+          deceased: 0,
+          population: 0,
+          active: 0,
+          id: eachValue.state_code,
+          name: eachValue.state_name,
+        }
+      })
+      this.setState({countryWideList: newData, appStatus: appConstants.success})
+    }
   }
 
-  whenDescendingSortButtonClicked = () => {
-    const {statesInfo} = this.state
-    const sortedList = statesInfo.sort((a, b) => {
-      const x = a.stateName.toUpperCase()
-      const y = b.stateName.toUpperCase()
-      return x < y ? 1 : -1
+  ascendingList = () => {
+    const {countryWideList} = this.state
+    const newCountryWideList = countryWideList.sort((a, b) => {
+      const fa = a.name.toLowerCase()
+      const fb = b.name.toLowerCase()
+      if (fa < fb) {
+        return -1
+      }
+      if (fa > fb) {
+        return 1
+      }
+      return 0
     })
-    this.setState({statesInfo: sortedList})
+    this.setState({countryWideList: newCountryWideList})
   }
 
-  renderAllStatesList = () => {
-    const {statesInfo} = this.state
+  descendingList = () => {
+    const {countryWideList} = this.state
+    const newCountryWideList = countryWideList.sort((a, b) => {
+      const fa = a.name.toLowerCase()
+      const fb = b.name.toLowerCase()
+      if (fa < fb) {
+        return 1
+      }
+      if (fa > fb) {
+        return -1
+      }
+      return 0
+    })
+    this.setState({countryWideList: newCountryWideList})
+  }
+
+  searchInputChange = e => {
+    const newSearchList = statesList.filter(eachValue =>
+      eachValue.state_name.toLowerCase().includes(e.target.value.toLowerCase()),
+    )
+    this.setState({searchInput: e.target.value, searchList: newSearchList})
+  }
+
+  successContainer = () => {
+    const {countryWideList, searchInput, searchList} = this.state
+    const confirmedArray = countryWideList.map(eachValue => eachValue.confirmed)
+    const activeArray = countryWideList.map(eachValue => eachValue.active)
+    const recoveredArray = countryWideList.map(eachValue => eachValue.recovered)
+    const deceasedArray = countryWideList.map(eachValue => eachValue.deceased)
+    const totalConfirmed = confirmedArray.reduce((a, b) => a + b, 0)
+    const totalActive = activeArray.reduce((a, b) => a + b, 0)
+    const totalRecovered = recoveredArray.reduce((a, b) => a + b, 0)
+    const totalDeceased = deceasedArray.reduce((a, b) => a + b, 0)
     return (
-      <div className="all-states-table" testid="stateWiseCovidDataTable">
-        <div className="table-header">
-          <div className="state-name-heading">
-            <button
-              className="order"
-              type="button"
-              testid="ascendingSort"
-              onClick={this.whenAscendingSortButtonClicked}
-            >
-              <FcGenericSortingAsc className="order-icon" />
-            </button>
-            <p className="table-header-title ">States/UT</p>
-            <button
-              className="order"
-              type="button"
-              testid="descendingSort"
-              onClick={this.whenDescendingSortButtonClicked}
-            >
-              <FcGenericSortingDesc className="order-icon" />
-            </button>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Confirmed</p>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Active</p>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Recovered</p>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Deceased</p>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Population</p>
-          </div>
-          <div className="other-tables-bar">
-            <p className="table-header-title">Others</p>
-          </div>
+      <div className="home-middle-container">
+        <div className="searchbar-holder">
+          <BsSearch className="search-icon" />
+          <input
+            type="search"
+            className="searchbar-input"
+            placeholder="Enter the State"
+            value={searchInput}
+            onChange={this.searchInputChange}
+          />
         </div>
-        <div className="state-wise-data-container">
-          <ul className="other-tables">
-            {statesInfo.map(each => (
-              <TotalStats key={each.stateCode} data={each} />
+        {searchList.length !== 0 && searchInput !== '' && (
+          <ul className="search-container" testid="searchResultsUnorderedList">
+            {searchList.map(eachValue => (
+              <Link
+                to={`/state/${eachValue.state_code}`}
+                className="search-link"
+              >
+                <li className="search-list-item" key={eachValue.state_code}>
+                  <p className="item-name">{eachValue.state_name}</p>
+                  <div className="icon-container">
+                    <p className="item-code">{eachValue.state_code}</p>
+                    <BiChevronRightSquare color="#FACC15" />
+                  </div>
+                </li>
+              </Link>
             ))}
           </ul>
+        )}
+        <div className="home-result-container">
+          <div className="home-top-list">
+            <div className="list-item" testid="countryWideConfirmedCases">
+              <p className="confirm-card-name">Confirmed</p>
+              <img
+                src="https://res.cloudinary.com/dyhsyterg/image/upload/v1641905267/confirmed_qmelok.svg"
+                className="confirm-card-image"
+                alt="country wide confirmed cases pic"
+              />
+              <p className="confirm-card-number">{totalConfirmed}</p>
+            </div>
+            <div className="list-item" testid="countryWideActiveCases">
+              <p className="active-card-name">Active</p>
+              <img
+                src="https://res.cloudinary.com/dyhsyterg/image/upload/v1641908440/active_tmhkjf.svg"
+                className="active-card-image"
+                alt="country wide active cases pic"
+              />
+              <p className="active-card-number">{totalActive}</p>
+            </div>
+            <div className="list-item" testid="countryWideRecoveredCases">
+              <p className="recovered-card-name">Recovered</p>
+              <img
+                src="https://res.cloudinary.com/dyhsyterg/image/upload/v1641909310/recovered_dtfpwl.svg"
+                className="recovered-card-image"
+                alt="country wide recovered cases pic"
+              />
+              <p className="recovered-card-number">{totalRecovered}</p>
+            </div>
+            <div className="list-item" testid="countryWideDeceasedCases">
+              <p className="deceased-card-name">Deceased</p>
+              <img
+                src="https://res.cloudinary.com/dyhsyterg/image/upload/v1641909662/deceased_tskayc.svg"
+                className="deceased-card-image"
+                alt="country wide deceased cases pic"
+              />
+              <p className="deceased-card-number">{totalDeceased}</p>
+            </div>
+          </div>
+          <div testid="stateWiseCovidDataTable" className="state-table">
+            <div className="state-result-heading">
+              <div className="state-ul-holder">
+                <p className="first-column-title">States/UT</p>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={this.ascendingList}
+                  testid="ascendingSort"
+                >
+                  <FcGenericSortingAsc className="ascending-icon" />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={this.descendingList}
+                  testid="descendingSort"
+                >
+                  <FcGenericSortingDesc className="descending-icon" />
+                </button>
+              </div>
+              <p className="general-column-title">Confirmed</p>
+              <p className="general-column-title">Active</p>
+              <p className="general-column-title">Recovered</p>
+              <p className="general-column-title">Deceased</p>
+              <p className="general-column-title">Population</p>
+            </div>
+            <ul className="state-result-table">
+              {countryWideList.map(eachValue => (
+                <li className="state-result-row" key={eachValue.id}>
+                  <Link
+                    to={`/state/${eachValue.id}`}
+                    className="state-link-item"
+                  >
+                    <p className="name-column">{eachValue.name}</p>
+                  </Link>
+                  <p className="number-column red">{eachValue.confirmed}</p>
+                  <p className="number-column blue">{eachValue.active}</p>
+                  <p className="number-column green">{eachValue.recovered}</p>
+                  <p className="number-column silver">{eachValue.deceased}</p>
+                  <p className="number-column grey">{eachValue.population}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     )
   }
 
-  searchStarted = event => {
-    const searchItem = event.target.value
-    const searchResult = statesList.filter(data =>
-      data.state_name.toLowerCase().includes(searchItem.toLowerCase()),
-    )
+  loaderContainer = () => (
+    <div testid="homeRouteLoader" className="loader-container">
+      <Loader type="TailSpin" color="#007BFF" width="25px" height="25px" />
+    </div>
+  )
 
-    return this.setState({
-      search: event.target.value,
-      filteredSearchList: searchResult,
-    })
-  }
-
-  showSearchList = () => {
-    const {filteredSearchList} = this.state
-
-    return (
-      <ul
-        className="search-result-container"
-        testid="searchResultsUnorderedList"
-      >
-        {filteredSearchList.map(each => (
-          <SearchResult
-            key={each.state_code}
-            stateName={each.state_name}
-            stateCode={each.state_code}
-            id={each.state_code}
-          />
-        ))}
-      </ul>
-    )
-  }
-
-  removeFilteredList = () => {
-    this.setState({filteredSearchList: []})
+  checkCondition = () => {
+    const {appStatus} = this.state
+    switch (appStatus) {
+      case appConstants.success:
+        return this.successContainer()
+      default:
+        return this.loaderContainer()
+    }
   }
 
   render() {
-    const {isLoading, filteredSearchList, search} = this.state
-    const showSearchList =
-      filteredSearchList.length === 0 ? null : this.showSearchList()
     return (
       <>
         <Header />
-        <div className="home-container">
-          <div className="home-content-container">
-            <div className="search-container">
-              <BsSearch testid="searchIcon" className="search-icon" />
-              <input
-                type="search"
-                placeholder="Enter the State"
-                className="search-bar"
-                onChange={this.searchStarted}
-                onAbort={this.removeFilteredList}
-              />
-            </div>
-            {search.length > 0 ? showSearchList : ''}
-            {isLoading ? (
-              this.renderLoadingView()
-            ) : (
-              <div className="dataView">
-                <div className="country-stats">
-                  {this.renderAllNationalData()}
-                </div>
-                <div className="state-table">{this.renderAllStatesList()}</div>
-              </div>
-            )}
-          </div>
-        </div>
+        {this.checkCondition()}
         <Footer />
       </>
     )
